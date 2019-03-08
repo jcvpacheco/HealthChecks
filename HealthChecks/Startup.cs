@@ -21,13 +21,22 @@ namespace HealthChecks
         // This method gets called by the runtime. Use this method to add services to the container.
         public void ConfigureServices(IServiceCollection services)
         {
+            //
+            //  This project configure health checks for asp.net core project and UI
+            //  in the same project. Typically health checks and UI are on different projects 
+            //  UI exist also as container image
+            //
+
             services.AddDbContext<MyDbContext>(options => options.UseInMemoryDatabase("DbContextHealthCheck"));
 
-            services.AddHealthChecks().AddCheck<MyDbContextHealthCheck>("DbContextHealthCheck");
-
-            services.AddHealthChecksUI();
-
-            services.AddMvc().SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
+            services
+                .AddHealthChecksUI()
+                .AddHealthChecks()
+                .AddCheck<RandomHealthCheck>("random")
+                .AddCheck<MyDbContextHealthCheck>("DbContextHealthCheck")
+                .Services
+                .AddMvc()
+                .SetCompatibilityVersion(CompatibilityVersion.Version_2_2);
         }
 
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
@@ -69,16 +78,15 @@ namespace HealthChecks
 
             //Option 3
             //Use / healthchecks-ui
-            app.UseHealthChecks("/health", new HealthCheckOptions()
+            app.UseHealthChecks("/healthz", new HealthCheckOptions()
             {
                 Predicate = _ => true,
                 ResponseWriter = UIResponseWriter.WriteHealthCheckUIResponse
-            });
-
-            app.UseHealthChecksUI();
-
-            app.UseStaticFiles();
-            app.UseMvc();
+            })
+           .UseHealthChecksUI()
+           .UseMvc();
         }
     }
+
+
 }
